@@ -912,7 +912,7 @@ static async checkDailyLimit(userId, categoryId) {
     const answeredCount = answeredRows[0].count;
     
     // Bu kategori için günlük limit
-    const dailyLimit = 20; 
+    const dailyLimit = 30; 
     
     // Kalan soru sayısı
     const remaining = Math.max(0, dailyLimit - answeredCount);
