@@ -883,40 +883,52 @@ static async getComprehensiveRanking(userId) {
   }
 
 /**
-   * Kullanıcının günlük limit kontrolü
-   */
-  static async checkDailyLimit(userId, categoryId) {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      // Kategori string'i olarak kullan
-      const query = `
-        SELECT COUNT(*) as count 
-        FROM user_answers ua
-        INNER JOIN questions q ON ua.question_id = q.id
-        WHERE ua.user_id = ? 
-          AND q.category = ?
-          AND ua.answered_at BETWEEN ? AND ?
-      `;
-      
-      const [rows] = await pool.execute(query, [userId, categoryId, today, tomorrow]);
-      const count = rows[0].count;
-      const DAILY_LIMIT = 30;
-      
-      return {
-        current_count: count,
-        limit: DAILY_LIMIT,
-        remaining: Math.max(0, DAILY_LIMIT - count),
-        limit_reached: count >= DAILY_LIMIT
-      };
-    } catch (error) {
-      console.error('checkDailyLimit error:', error);
-      throw error;
-    }
+ * Kategoriye göre günlük soru limitini kontrol et
+ * @param {number} userId - Kullanıcı ID
+ * @param {number} categoryId - Kategori ID
+ * @returns {Promise<Object>} - Limit bilgileri
+ */
+static async checkDailyLimit(userId, categoryId) {
+  try {
+    // Sayısal dönüşüm
+    const numericUserId = parseInt(userId, 10);
+    const numericCategoryId = parseInt(categoryId, 10);
+    
+    console.log(`Günlük limit kontrolü: userId=${numericUserId}, categoryId=${numericCategoryId}`);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Bugün yanıtlanan soru sayısını hesapla
+    const [answeredRows] = await pool.execute(`
+      SELECT COUNT(*) as count 
+      FROM user_answers ua
+      JOIN questions q ON ua.question_id = q.id
+      WHERE ua.user_id = ? 
+      AND q.category = ?
+      AND DATE(ua.answered_at) = CURDATE()
+    `, [numericUserId, numericCategoryId]);
+    
+    const answeredCount = answeredRows[0].count;
+    
+    // Bu kategori için günlük limit
+    const dailyLimit = 20; 
+    
+    // Kalan soru sayısı
+    const remaining = Math.max(0, dailyLimit - answeredCount);
+    
+    return {
+      category_id: categoryId,
+      daily_limit: dailyLimit,
+      answered_today: answeredCount,
+      remaining: remaining,
+      limit_reached: remaining === 0
+    };
+  } catch (error) {
+    console.error('checkDailyLimit error:', error);
+    throw error;
   }
+}
   
   /**
    * Kullanıcının sıralamasını getir
