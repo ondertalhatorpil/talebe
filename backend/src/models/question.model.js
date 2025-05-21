@@ -121,7 +121,7 @@ static async getQuestions(filters = {}, limit = 10, offset = 0) {
     const numericLimit = parseInt(limit, 10);
     const numericOffset = parseInt(offset, 10);
     
-    console.log(`DEBUG: getQuestions çağrıldı - limit: ${numericLimit}, offset: ${numericOffset}`);
+    console.log(`DEBUG: getQuestions - limit: ${numericLimit}, offset: ${numericOffset}`);
     
     let query = 'SELECT * FROM questions WHERE 1=1';
     const params = [];
@@ -150,14 +150,14 @@ static async getQuestions(filters = {}, limit = 10, offset = 0) {
       params.push(...filters.exclude_ids);
     }
     
-    // Sonuçları sırala ve limitle
-    query += ' ORDER BY RAND() LIMIT ? OFFSET ?';
-    params.push(numericLimit, numericOffset);
+    // LIMIT parametresini doğrudan ekleyelim - prepared statement kullanmadan
+    query += ` ORDER BY RAND() LIMIT ${numericLimit} OFFSET ${numericOffset}`;
     
     console.log('SQL Sorgusu:', query);
     console.log('Parametreler:', params);
     
-    const [rows] = await pool.execute(query, params);
+    // Sorguyu direkt olarak çalıştır - LIMIT ve OFFSET için hazırlanan parametreler yok
+    const [rows] = await pool.query(query, params);
     return rows;
   } catch (error) {
     console.error('getQuestions error:', error);

@@ -29,14 +29,20 @@ exports.createQuestion = async (req, res) => {
 // Soruları listele (filtreli)
 exports.getQuestions = async (req, res) => {
   try {
-    const { user_type, category, difficulty, limit = 10, offset = 0 } = req.query;
+    const { user_type, category, difficulty } = req.query;
+    
+    // Limit ve offset değerlerini sayıya dönüştür
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : 10;
+    const offset = req.query.offset ? parseInt(req.query.offset, 10) : 0;
+    
+    console.log(`getQuestions API çağrıldı - limit: ${limit}, offset: ${offset}`);
     
     const filters = {};
     if (user_type) filters.user_type = user_type;
     if (category) filters.category = category;
     if (difficulty) filters.difficulty = difficulty;
     
-    const questions = await Question.getQuestions(filters, parseInt(limit), parseInt(offset));
+    const questions = await Question.getQuestions(filters, limit, offset);
     
     res.status(200).json({
       success: true,
@@ -44,6 +50,7 @@ exports.getQuestions = async (req, res) => {
       questions
     });
   } catch (error) {
+    console.error('Controller getQuestions hatası:', error);
     res.status(500).json({
       success: false,
       message: 'Sorular alınırken bir hata oluştu.',
