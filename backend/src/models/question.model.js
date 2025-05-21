@@ -108,52 +108,62 @@ class Question {
     }
   }
   
-  /**
-   * Soruları filtrele ve getir
-   * @param {Object} filters - Filtre parametreleri
-   * @param {number} limit - Maksimum soru sayısı
-   * @param {number} offset - Başlangıç indeksi
-   * @returns {Promise<Array>} - Soru listesi
-   */
-  static async getQuestions(filters = {}, limit = 10, offset = 0) {
-    try {
-      let query = 'SELECT * FROM questions WHERE 1=1';
-      const params = [];
-      
-      // Kullanıcı tipine göre filtrele
-      if (filters.user_type) {
-        query += ' AND (user_type = ? OR user_type = "both")';
-        params.push(filters.user_type);
-      }
-      
-      // Kategoriye göre filtrele
-      if (filters.category) {
-        query += ' AND category = ?';
-        params.push(filters.category);
-      }
-      
-      // Zorluk seviyesine göre filtrele
-      if (filters.difficulty) {
-        query += ' AND difficulty = ?';
-        params.push(filters.difficulty);
-      }
-      
-      // ID listesini hariç tut (daha önce cevaplanmış soruları filtrelemek için)
-      if (filters.exclude_ids && Array.isArray(filters.exclude_ids) && filters.exclude_ids.length > 0) {
-        query += ` AND id NOT IN (${filters.exclude_ids.map(() => '?').join(',')})`;
-        params.push(...filters.exclude_ids);
-      }
-      
-      // Sonuçları sırala ve limitle
-      query += ' ORDER BY RAND() LIMIT ? OFFSET ?';
-      params.push(limit, offset);
-      
-      const [rows] = await pool.execute(query, params);
-      return rows;
-    } catch (error) {
-      throw error;
+/**
+ * Soruları filtrele ve getir
+ * @param {Object} filters - Filtre parametreleri
+ * @param {number} limit - Maksimum soru sayısı
+ * @param {number} offset - Başlangıç indeksi
+ * @returns {Promise<Array>} - Soru listesi
+ */
+static async getQuestions(filters = {}, limit = 10, offset = 0) {
+  try {
+    // Sayısal parametrelerin dönüşümünü garantiye al
+    const numericLimit = parseInt(limit, 10);
+    const numericOffset = parseInt(offset, 10);
+    
+    console.log(`DEBUG: getQuestions çağrıldı - limit: ${numericLimit}, offset: ${numericOffset}`);
+    
+    let query = 'SELECT * FROM questions WHERE 1=1';
+    const params = [];
+    
+    // Kullanıcı tipine göre filtrele
+    if (filters.user_type) {
+      query += ' AND (user_type = ? OR user_type = "both")';
+      params.push(filters.user_type);
     }
+    
+    // Kategoriye göre filtrele
+    if (filters.category) {
+      query += ' AND category = ?';
+      params.push(filters.category);
+    }
+    
+    // Zorluk seviyesine göre filtrele
+    if (filters.difficulty) {
+      query += ' AND difficulty = ?';
+      params.push(filters.difficulty);
+    }
+    
+    // ID listesini hariç tut (daha önce cevaplanmış soruları filtrelemek için)
+    if (filters.exclude_ids && Array.isArray(filters.exclude_ids) && filters.exclude_ids.length > 0) {
+      query += ` AND id NOT IN (${filters.exclude_ids.map(() => '?').join(',')})`;
+      params.push(...filters.exclude_ids);
+    }
+    
+    // Sonuçları sırala ve limitle
+    query += ' ORDER BY RAND() LIMIT ? OFFSET ?';
+    params.push(numericLimit, numericOffset);
+    
+    console.log('SQL Sorgusu:', query);
+    console.log('Parametreler:', params);
+    
+    const [rows] = await pool.execute(query, params);
+    return rows;
+  } catch (error) {
+    console.error('getQuestions error:', error);
+    throw error;
   }
+}
   
   /**
    * Soruyu cevaplarıyla birlikte güncelle
@@ -412,45 +422,53 @@ static async answerQuestion(userId, questionId, answerId, responseTime = null) {
   }
 }
   
-  /**
-   * Kullanıcının yanıtladığı soruları getir
-   * @param {number} userId - Kullanıcı ID
-   * @param {number} limit - Maksimum kayıt sayısı
-   * @param {number} offset - Başlangıç indeksi
-   * @returns {Promise<Array>} - Yanıtlanmış soru listesi
-   */
-  static async getUserAnsweredQuestions(userId, limit = 10, offset = 0) {
-    try {
-      const query = `
-        SELECT 
-          q.id as question_id, 
-          q.question_text,
-          q.category,
-          q.difficulty,
-          a.id as answer_id,
-          a.answer_text,
-          ua.is_correct,
-          ua.points_earned,
-          ua.answered_at
-        FROM 
-          user_answers ua
-        INNER JOIN 
-          questions q ON ua.question_id = q.id
-        INNER JOIN 
-          answers a ON ua.answer_id = a.id
-        WHERE 
-          ua.user_id = ?
-        ORDER BY 
-          ua.answered_at DESC
-        LIMIT ? OFFSET ?
-      `;
-      
-      const [rows] = await pool.execute(query, [userId, limit, offset]);
-      return rows;
-    } catch (error) {
-      throw error;
-    }
+/**
+ * Kullanıcının yanıtladığı soruları getir
+ * @param {number} userId - Kullanıcı ID
+ * @param {number} limit - Maksimum kayıt sayısı
+ * @param {number} offset - Başlangıç indeksi
+ * @returns {Promise<Array>} - Yanıtlanmış soru listesi
+ */
+static async getUserAnsweredQuestions(userId, limit = 10, offset = 0) {
+  try {
+    // Sayısal parametrelerin dönüşümünü garantiye al
+    const numericLimit = parseInt(limit, 10);
+    const numericOffset = parseInt(offset, 10);
+    const numericUserId = parseInt(userId, 10);
+    
+    console.log(`DEBUG: getUserAnsweredQuestions çağrıldı - userId: ${numericUserId}, limit: ${numericLimit}, offset: ${numericOffset}`);
+    
+    const query = `
+      SELECT 
+        q.id as question_id, 
+        q.question_text,
+        q.category,
+        q.difficulty,
+        a.id as answer_id,
+        a.answer_text,
+        ua.is_correct,
+        ua.points_earned,
+        ua.answered_at
+      FROM 
+        user_answers ua
+      INNER JOIN 
+        questions q ON ua.question_id = q.id
+      INNER JOIN 
+        answers a ON ua.answer_id = a.id
+      WHERE 
+        ua.user_id = ?
+      ORDER BY 
+        ua.answered_at DESC
+      LIMIT ? OFFSET ?
+    `;
+    
+    const [rows] = await pool.execute(query, [numericUserId, numericLimit, numericOffset]);
+    return rows;
+  } catch (error) {
+    console.error('getUserAnsweredQuestions error:', error);
+    throw error;
   }
+}
   
   /**
    * Kullanıcının toplam doğru ve yanlış cevap sayılarını getir
