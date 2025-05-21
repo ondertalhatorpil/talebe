@@ -1,5 +1,4 @@
 // src/components/dashboard/UserProgressChart.jsx
-import { useEffect, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,

@@ -143,11 +143,14 @@ const CategoriesPage = () => {
               const limitInfo = categoryLimits[category.id];
               const limitReached = limitInfo?.limit_reached || false;
               const remainingQuestions = limitInfo?.remaining || 0;
-              const totalLimit = limitInfo?.limit || 30;
+              const totalLimit = limitInfo?.daily_limit || 30;
               
-              // İlerleme yüzdesini hesapla
-              const progressPercentage = limitInfo 
-                ? ((totalLimit - remainingQuestions) / totalLimit) * 100 
+              // Tamamlanan soru sayısını direkt olarak hesapla
+              const answeredToday = limitInfo?.answered_today || 0;
+              
+              // İlerleme yüzdesini tamamlanan soru sayısına göre hesapla
+              const progressPercentage = answeredToday > 0 
+                ? (answeredToday / totalLimit) * 100 
                 : 0;
               
               return (
@@ -195,7 +198,7 @@ const CategoriesPage = () => {
                             <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
                               <span>Günlük İlerleme</span>
                               <span className="font-medium">
-                                {totalLimit - remainingQuestions}/{totalLimit}
+                                {answeredToday}/{totalLimit}
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3">
