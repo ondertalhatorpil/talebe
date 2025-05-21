@@ -308,6 +308,9 @@ static async getRecentActivity(userId, limit = 10) {
   try {
     console.log('🚀 getRecentActivity başladı - User ID:', userId);
     
+    // limit parametresini sayıya dönüştür (DÜZELTME)
+    const numericLimit = parseInt(limit, 10);
+    
     // user_answers tablosunda veri olup olmadığını kontrol et
     const checkQuery = `
       SELECT COUNT(*) as count
@@ -354,7 +357,7 @@ static async getRecentActivity(userId, limit = 10) {
         LIMIT ?
       `;
       
-      const [rows1] = await pool.execute(query1, [userId, limit]);
+      const [rows1] = await pool.execute(query1, [userId, numericLimit]);
       console.log('📋 Method 1 sonuç:', rows1);
       
       if (rows1 && rows1.length > 0) {
@@ -383,7 +386,7 @@ static async getRecentActivity(userId, limit = 10) {
         LIMIT ?
       `;
       
-      const [rows2] = await pool.execute(query2, [userId, limit]);
+      const [rows2] = await pool.execute(query2, [userId, numericLimit]);
       console.log('📋 Method 2 sonuç:', rows2);
       
       if (rows2 && rows2.length > 0) {
@@ -410,7 +413,7 @@ static async getRecentActivity(userId, limit = 10) {
         LIMIT ?
       `;
       
-      const [rows3] = await pool.execute(query3, [userId, limit]);
+      const [rows3] = await pool.execute(query3, [userId, numericLimit]);
       console.log('📋 Method 3 sonuç:', rows3);
       
       if (rows3 && rows3.length > 0) {
@@ -436,7 +439,8 @@ static async getRecentActivity(userId, limit = 10) {
         LIMIT ?
       `;
       
-      const [rows4] = await pool.execute(query4, [userId, limit]);
+      // DÜZELTME: limit parametresini sayı olarak kullan
+      const [rows4] = await pool.execute(query4, [userId, numericLimit]);
       console.log('📋 Method 4 sonuç:', rows4);
       
       if (rows4 && rows4.length > 0) {
@@ -619,10 +623,9 @@ static async getDailyQuestionCount(userId, categoryId) {
   }
 }
 
-/**
- * Kullanıcının Türkiye, İl, İlçe ve Okul bazında genel sıralamasını getir
- * Bu fonksiyon değişmedi, zaten doğru çalışıyor
- */
+/**  
+ * Kullanıcının Türkiye, İl, İlçe ve Okul bazında genel sıralamasını getir  
+ */ 
 static async getComprehensiveRanking(userId) {
   try {
     // Önce kullanıcı bilgilerini al
@@ -632,94 +635,94 @@ static async getComprehensiveRanking(userId) {
       LEFT JOIN schools s ON u.school_id = s.id
       WHERE u.id = ?
     `, [userId]);
-
+    
     if (userRows.length === 0) {
       return null;
     }
-
+    
     const user = userRows[0];
-
-    // Türkiye sıralaması
+    
+    // Türkiye sıralaması - DÜZELTME: 'rank' yerine 'user_rank' kullanıldı
     const [turkeyRank] = await pool.execute(`
       SELECT 
-        (SELECT COUNT(*) FROM users WHERE points > ?) + 1 as rank,
+        (SELECT COUNT(*) FROM users WHERE points > ?) + 1 as user_rank,
         COUNT(*) as total
       FROM users
     `, [user.points]);
-
+    
     // İl sıralaması - user.city null olabilir, kontrol et
-    let cityRank = [{ rank: 1, total: 1 }];
+    let cityRank = [{ user_rank: 1, total: 1 }];
     if (user.city) {
       [cityRank] = await pool.execute(`
         SELECT 
           (SELECT COUNT(*) 
-           FROM users u2 
-           JOIN schools s2 ON u2.school_id = s2.id 
-           WHERE s2.city = ? AND u2.points > ?) + 1 as rank,
+            FROM users u2
+            JOIN schools s2 ON u2.school_id = s2.id
+            WHERE s2.city = ? AND u2.points > ?) + 1 as user_rank,
           COUNT(*) as total
         FROM users u
         JOIN schools s ON u.school_id = s.id
         WHERE s.city = ?
       `, [user.city, user.points, user.city]);
     }
-
+    
     // İlçe sıralaması - user.district null olabilir, kontrol et
-    let districtRank = [{ rank: 1, total: 1 }];
+    let districtRank = [{ user_rank: 1, total: 1 }];
     if (user.city && user.district) {
       [districtRank] = await pool.execute(`
         SELECT 
           (SELECT COUNT(*) 
-           FROM users u2 
-           JOIN schools s2 ON u2.school_id = s2.id 
-           WHERE s2.city = ? AND s2.district = ? AND u2.points > ?) + 1 as rank,
+            FROM users u2
+            JOIN schools s2 ON u2.school_id = s2.id
+            WHERE s2.city = ? AND s2.district = ? AND u2.points > ?) + 1 as user_rank,
           COUNT(*) as total
         FROM users u
         JOIN schools s ON u.school_id = s.id
         WHERE s.city = ? AND s.district = ?
       `, [user.city, user.district, user.points, user.city, user.district]);
     }
-
+    
     // Okul sıralaması - user.school_id null olabilir, kontrol et
-    let schoolRank = [{ rank: 1, total: 1 }];
+    let schoolRank = [{ user_rank: 1, total: 1 }];
     if (user.school_id) {
       [schoolRank] = await pool.execute(`
         SELECT 
-          (SELECT COUNT(*) FROM users WHERE school_id = ? AND points > ?) + 1 as rank,
+          (SELECT COUNT(*) FROM users WHERE school_id = ? AND points > ?) + 1 as user_rank,
           COUNT(*) as total
         FROM users
         WHERE school_id = ?
       `, [user.school_id, user.points, user.school_id]);
     }
-
+    
     // Yüzdelik hesaplama
     const calculatePercentage = (rank, total) => {
       if (!rank || !total) return "0.0";
       return (((total - rank + 1) / total) * 100).toFixed(1);
     };
-
+    
     return {
       rankings: {
         turkey: {
-          rank: turkeyRank[0]?.rank || 1,
+          rank: turkeyRank[0]?.user_rank || 1,
           total: turkeyRank[0]?.total || 1,
-          percentage: calculatePercentage(turkeyRank[0]?.rank, turkeyRank[0]?.total)
+          percentage: calculatePercentage(turkeyRank[0]?.user_rank, turkeyRank[0]?.total)
         },
         city: {
           name: user.city || 'Bilinmiyor',
-          rank: cityRank[0]?.rank || 1,
+          rank: cityRank[0]?.user_rank || 1,
           total: cityRank[0]?.total || 1,
-          percentage: calculatePercentage(cityRank[0]?.rank, cityRank[0]?.total)
+          percentage: calculatePercentage(cityRank[0]?.user_rank, cityRank[0]?.total)
         },
         district: {
           name: user.district || 'Bilinmiyor',
-          rank: districtRank[0]?.rank || 1,
+          rank: districtRank[0]?.user_rank || 1,
           total: districtRank[0]?.total || 1,
-          percentage: calculatePercentage(districtRank[0]?.rank, districtRank[0]?.total)
+          percentage: calculatePercentage(districtRank[0]?.user_rank, districtRank[0]?.total)
         },
         school: {
-          rank: schoolRank[0]?.rank || 1,
+          rank: schoolRank[0]?.user_rank || 1,
           total: schoolRank[0]?.total || 1,
-          percentage: calculatePercentage(schoolRank[0]?.rank, schoolRank[0]?.total)
+          percentage: calculatePercentage(schoolRank[0]?.user_rank, schoolRank[0]?.total)
         }
       }
     };
