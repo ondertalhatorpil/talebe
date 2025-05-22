@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Medal, Star, School, MapPin, TrendingUp, Award } from 'lucide-react';
+import { Trophy, School, MapPin, TrendingUp, Award } from 'lucide-react';
 
 const MyRankingCard = ({ ranking }) => {
   // Initial validation
@@ -88,10 +88,6 @@ const MyRankingCard = ({ ranking }) => {
               </h2>
               <p className="text-blue-200/80 text-sm font-medium">Anlık güncel performans verileri</p>
             </div>
-          </div>
-          <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/20">
-            <Star className="text-yellow-300 text-lg" />
-            <span className="text-lg font-bold">{formatNumber(points)} Puan</span>
           </div>
         </div>
 
@@ -198,19 +194,6 @@ const MyRankingCard = ({ ranking }) => {
               <div className="text-xs text-blue-200/70 flex items-center bg-white/5 rounded-lg px-2 py-1">
                 <TrendingUp className="mr-1 text-green-400" size={12} />
                 Top %{calculateTopPercentage(school.percentage)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Achievement Section */}
-        <div className="mt-8 flex justify-center">
-          <div className="bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex items-center space-x-4">
-            <Award className="text-yellow-300 text-2xl" />
-            <div>
-              <div className="text-sm text-blue-200/80">Genel Başarı Seviyesi</div>
-              <div className="text-lg font-bold bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">
-                Mükemmel Performans
               </div>
             </div>
           </div>
