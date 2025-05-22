@@ -82,15 +82,6 @@ const MyRankingCard = ({ ranking }) => {
               <p className="text-blue-100 text-sm">Anlık güncel performans verileri</p>
             </div>
           </div>
-          
-          {/* Total Points */}
-          <div className="text-right">
-            <div className="text-2xl md:text-3xl font-bold flex items-center justify-end">
-              <FaStar className="inline text-yellow-300 mr-2" />
-              {formatNumber(points)}
-            </div>
-            <div className="text-sm text-blue-100">Toplam Puan</div>
-          </div>
         </div>
 
         {/* Rankings Grid */}
@@ -166,27 +157,6 @@ const MyRankingCard = ({ ranking }) => {
               <MdTrendingUp className="mr-1" />
               Top %{calculateTopPercentage(school.percentage)}
             </div>
-          </div>
-        </div>
-
-        {/* Achievement Highlights */}
-        <div className="mt-6 pt-4 border-t border-white border-opacity-20">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {school.rank === 1 && (
-              <div className="bg-yellow-500 bg-opacity-90 px-3 py-1 rounded-full text-xs font-bold text-white animate-pulse">
-                🏆 Okulun 1.ncisi!
-              </div>
-            )}
-            {district.rank <= 3 && district.rank !== '-' && !isNaN(district.rank) && (
-              <div className="bg-blue-500 bg-opacity-90 px-3 py-1 rounded-full text-xs font-bold text-white">
-                🌟 İlçe Top 3
-              </div>
-            )}
-            {turkey.percentage && !isNaN(turkey.percentage) && parseFloat(turkey.percentage) >= 90 && (
-              <div className="bg-purple-500 bg-opacity-90 px-3 py-1 rounded-full text-xs font-bold text-white">
-                ⭐ Türkiye Top %10
-              </div>
-            )}
           </div>
         </div>
       </div>
