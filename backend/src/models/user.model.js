@@ -580,9 +580,7 @@ static async getCategoryPerformance(userId) {
     }
   }
 
-  // src/models/user.model.js içine ekleyin
 
-// Kullanıcının belirli bir kategoride bugün çözdüğü soru sayısını kontrol et
 static async getDailyQuestionCount(userId, categoryId) {
   try {
     const today = new Date();
@@ -606,7 +604,6 @@ static async getDailyQuestionCount(userId, categoryId) {
                  AND ua.answered_at BETWEEN ? AND ?`;
       params = [userId, categoryId, today, tomorrow];
     } else {
-      // Eğer string ise, category ile karşılaştır
       query = `SELECT COUNT(*) as count 
                FROM user_answers ua
                INNER JOIN questions q ON ua.question_id = q.id  
