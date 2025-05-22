@@ -345,15 +345,35 @@ static async answerQuestion(userId, questionId, answerId, responseTime = null) {
     const connection = await pool.getConnection();
     await connection.beginTransaction();
     
+    let pointDifferenceForSchool = 0; // Okul puanı için kullanılacak
+    
     try {
       // Çift cevap jokerinde ikinci deneme ise önceki cevabı güncelle
       if (isSecondAttempt) {
+        // Önceki puanı al
+        const [prevAnswer] = await connection.execute(
+          'SELECT points_earned FROM user_answers WHERE user_id = ? AND question_id = ?',
+          [userId, questionId]
+        );
+        const prevPoints = prevAnswer[0]?.points_earned || 0;
+        
         await connection.execute(
           `UPDATE user_answers 
            SET answer_id = ?, is_correct = ?, points_earned = ?, response_time = ?
            WHERE user_id = ? AND question_id = ?`,
           [answerId, isCorrect, pointsEarned, responseTime, userId, questionId]
         );
+        
+        // Puan farkını hesapla
+        pointDifferenceForSchool = pointsEarned - prevPoints;
+        
+        // Kullanıcının puanını güncelle (transaction içinde)
+        if (pointDifferenceForSchool !== 0) {
+          await connection.execute(
+            'UPDATE users SET points = points + ? WHERE id = ?',
+            [pointDifferenceForSchool, userId]
+          );
+        }
       } else {
         // Normal cevap veya ilk deneme
         await connection.execute(
@@ -362,36 +382,44 @@ static async answerQuestion(userId, questionId, answerId, responseTime = null) {
            VALUES (?, ?, ?, ?, ?, ?)`,
           [userId, questionId, answerId, isCorrect, pointsEarned, responseTime]
         );
-      }
-      
-      // Kullanıcının puanını güncelle (sadece puan kazanıldıysa)
-      if (pointsEarned > 0) {
-        // Çift cevap jokerinde ikinci deneme ise önceki puanı çıkar
-        if (isSecondAttempt) {
-          const [prevAnswer] = await connection.execute(
-            'SELECT points_earned FROM user_answers WHERE user_id = ? AND question_id = ?',
-            [userId, questionId]
-          );
-          const prevPoints = prevAnswer[0]?.points_earned || 0;
-          const pointDiff = pointsEarned - prevPoints;
-          
-          await connection.execute(
-            'UPDATE users SET points = points + ? WHERE id = ?',
-            [pointDiff, userId]
-          );
-        } else {
+        
+        // Kullanıcının puanını güncelle (transaction içinde)
+        if (pointsEarned > 0) {
           await connection.execute(
             'UPDATE users SET points = points + ? WHERE id = ?',
             [pointsEarned, userId]
           );
+          pointDifferenceForSchool = pointsEarned;
         }
       }
       
       await connection.commit();
       connection.release();
       
+      // Transaction tamamlandıktan SONRA okul puanını güncelle
+      if (pointDifferenceForSchool > 0) {
+        try {
+          // Kullanıcının okulunu bul
+          const [userRows] = await pool.execute(
+            'SELECT school_id FROM users WHERE id = ?',
+            [userId]
+          );
+          
+          if (userRows.length > 0 && userRows[0].school_id) {
+            // Okul toplam puanını güncelle
+            await pool.execute(
+              'UPDATE schools SET total_points = (SELECT SUM(points) FROM users WHERE school_id = ?) WHERE id = ?',
+              [userRows[0].school_id, userRows[0].school_id]
+            );
+          }
+        } catch (schoolUpdateError) {
+          console.error('Okul puanı güncellenirken hata:', schoolUpdateError);
+          // Okul puanı güncellenemese bile ana işlem devam etsin
+        }
+      }
+      
       // Kullanıcının güncellenmiş puanını al
-      const [userRows] = await pool.execute(
+      const [finalUserRows] = await pool.execute(
         'SELECT points FROM users WHERE id = ?',
         [userId]
       );
@@ -405,7 +433,7 @@ static async answerQuestion(userId, questionId, answerId, responseTime = null) {
       return {
         is_correct: isCorrect,
         points_earned: pointsEarned,
-        current_points: userRows[0].points,
+        current_points: finalUserRows[0].points,
         // Çift cevap jokerinde ilk yanlış denemede doğru cevabı gösterme
         correct_answer_id: (secondChance) ? null : correctAnswerId,
         response_time: responseTime,
