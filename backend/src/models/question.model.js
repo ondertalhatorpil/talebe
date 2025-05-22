@@ -22,7 +22,7 @@ class Question {
           points = 20;
           break;
         default:
-          points = 10; 
+          points = 10; // Varsayılan değer
       }
       
       // Cevap kontrolü
@@ -348,25 +348,12 @@ static async answerQuestion(userId, questionId, answerId, responseTime = null) {
     try {
       // Çift cevap jokerinde ikinci deneme ise önceki cevabı güncelle
       if (isSecondAttempt) {
-        // Önceki puanı al
-        const [prevAnswer] = await connection.execute(
-          'SELECT points_earned FROM user_answers WHERE user_id = ? AND question_id = ?',
-          [userId, questionId]
-        );
-        const prevPoints = prevAnswer[0]?.points_earned || 0;
-        
         await connection.execute(
           `UPDATE user_answers 
            SET answer_id = ?, is_correct = ?, points_earned = ?, response_time = ?
            WHERE user_id = ? AND question_id = ?`,
           [answerId, isCorrect, pointsEarned, responseTime, userId, questionId]
         );
-        
-        // Puan farkını hesapla ve User.updatePoints ile güncelle
-        const pointDiff = pointsEarned - prevPoints;
-        if (pointDiff !== 0) {
-          await User.updatePoints(userId, pointDiff);
-        }
       } else {
         // Normal cevap veya ilk deneme
         await connection.execute(
@@ -375,10 +362,28 @@ static async answerQuestion(userId, questionId, answerId, responseTime = null) {
            VALUES (?, ?, ?, ?, ?, ?)`,
           [userId, questionId, answerId, isCorrect, pointsEarned, responseTime]
         );
-        
-        // User.updatePoints fonksiyonunu kullan (hem kullanıcı hem okul puanını günceller)
-        if (pointsEarned > 0) {
-          await User.updatePoints(userId, pointsEarned);
+      }
+      
+      // Kullanıcının puanını güncelle (sadece puan kazanıldıysa)
+      if (pointsEarned > 0) {
+        // Çift cevap jokerinde ikinci deneme ise önceki puanı çıkar
+        if (isSecondAttempt) {
+          const [prevAnswer] = await connection.execute(
+            'SELECT points_earned FROM user_answers WHERE user_id = ? AND question_id = ?',
+            [userId, questionId]
+          );
+          const prevPoints = prevAnswer[0]?.points_earned || 0;
+          const pointDiff = pointsEarned - prevPoints;
+          
+          await connection.execute(
+            'UPDATE users SET points = points + ? WHERE id = ?',
+            [pointDiff, userId]
+          );
+        } else {
+          await connection.execute(
+            'UPDATE users SET points = points + ? WHERE id = ?',
+            [pointsEarned, userId]
+          );
         }
       }
       
