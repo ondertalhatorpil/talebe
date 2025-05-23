@@ -1,79 +1,86 @@
 const { pool } = require('../config/database');
 
 class Question {
-  /**
-   * Yeni soru oluştur
-   * @param {Object} questionData - Soru bilgileri ve cevapları
-   * @returns {Promise<Object>} - Oluşturulan soru
-   */
-  static async create(questionData) {
+/**
+ * Yeni soru oluştur
+ * @param {Object} questionData - Soru bilgileri ve cevapları
+ * @returns {Promise<Object>} - Oluşturulan soru
+ */
+static async create(questionData) {
+  try {
+    const { question_text, user_type, category, difficulty, answers } = questionData;
+
+    // Soft hyphen karakterlerini temizle
+    const cleanQuestionText = question_text.replace(/­/g, '');
+    const cleanAnswers = answers.map(answer => ({
+      ...answer,
+      answer_text: answer.answer_text.replace(/­/g, '')
+    }));
+
+    let points;
+    switch(difficulty) {
+      case 'kolay':
+        points = 5;
+        break;
+      case 'orta':
+        points = 10;
+        break;
+      case 'zor':
+        points = 20;
+        break;
+      default:
+        points = 10; // Varsayılan değer
+    }
+    
+    // Cevap kontrolü
+    if (!cleanAnswers || !Array.isArray(cleanAnswers) || cleanAnswers.length < 2) {
+      throw new Error('En az 2 cevap seçeneği gereklidir.');
+    }
+
+    // Doğru cevap kontrolü
+    const correctAnswers = cleanAnswers.filter(answer => answer.is_correct);
+    if (correctAnswers.length === 0) {
+      throw new Error('En az bir doğru cevap seçeneği olmalıdır.');
+    }
+    
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
     try {
-      const { question_text, user_type, category, difficulty, answers } = questionData;
-
-      let points;
-      switch(difficulty) {
-        case 'kolay':
-          points = 5;
-          break;
-        case 'orta':
-          points = 10;
-          break;
-        case 'zor':
-          points = 20;
-          break;
-        default:
-          points = 10; // Varsayılan değer
-      }
-      
-      // Cevap kontrolü
-      if (!answers || !Array.isArray(answers) || answers.length < 2) {
-        throw new Error('En az 2 cevap seçeneği gereklidir.');
-      }
-
-      // Doğru cevap kontrolü
-      const correctAnswers = answers.filter(answer => answer.is_correct);
-      if (correctAnswers.length === 0) {
-        throw new Error('En az bir doğru cevap seçeneği olmalıdır.');
-      }
-      
-      const connection = await pool.getConnection();
-      await connection.beginTransaction();
-      
-      try {
-        // Soruyu veritabanına ekle
+      // Soruyu veritabanına ekle
       const [questionResult] = await connection.execute(
         `INSERT INTO questions 
          (question_text, user_type, category, difficulty, points) 
          VALUES (?, ?, ?, ?, ?)`,
-        [question_text, user_type, category, difficulty, points]
+        [cleanQuestionText, user_type, category, difficulty, points]
       );
         
-        const questionId = questionResult.insertId;
-        
-        // Cevapları veritabanına ekle
-        for (const answer of answers) {
-          await connection.execute(
-            `INSERT INTO answers 
-             (question_id, answer_text, is_correct) 
-             VALUES (?, ?, ?)`,
-            [questionId, answer.answer_text, answer.is_correct]
-          );
-        }
-        
-        await connection.commit();
-        connection.release();
-        
-        // Oluşturulan soruyu cevaplarıyla birlikte döndür
-        return this.findByIdWithAnswers(questionId);
-      } catch (error) {
-        await connection.rollback();
-        connection.release();
-        throw error;
+      const questionId = questionResult.insertId;
+      
+      // Cevapları veritabanına ekle
+      for (const answer of cleanAnswers) {
+        await connection.execute(
+          `INSERT INTO answers 
+           (question_id, answer_text, is_correct) 
+           VALUES (?, ?, ?)`,
+          [questionId, answer.answer_text, answer.is_correct]
+        );
       }
+      
+      await connection.commit();
+      connection.release();
+      
+      // Oluşturulan soruyu cevaplarıyla birlikte döndür
+      return this.findByIdWithAnswers(questionId);
     } catch (error) {
+      await connection.rollback();
+      connection.release();
       throw error;
     }
+  } catch (error) {
+    throw error;
   }
+}
   
   /**
    * ID'ye göre soru bul (cevaplar dahil)
@@ -165,75 +172,82 @@ static async getQuestions(filters = {}, limit = 10, offset = 0) {
   }
 }
   
-  /**
-   * Soruyu cevaplarıyla birlikte güncelle
-   * @param {number} id - Soru ID
-   * @param {Object} questionData - Güncellenecek soru verileri
-   * @returns {Promise<Object|null>} - Güncellenmiş soru
-   */
-  static async update(id, questionData) {
-    try {
-      const { question_text, user_type, category, difficulty, answers } = questionData;
+/**
+ * Soruyu cevaplarıyla birlikte güncelle
+ * @param {number} id - Soru ID
+ * @param {Object} questionData - Güncellenecek soru verileri
+ * @returns {Promise<Object|null>} - Güncellenmiş soru
+ */
+static async update(id, questionData) {
+  try {
+    const { question_text, user_type, category, difficulty, answers } = questionData;
 
-      let points;
-      switch(difficulty) {
-        case 'kolay':
-          points = 5;
-          break;
-        case 'orta':
-          points = 10;
-          break;
-        case 'zor':
-          points = 20;
-          break;
-        default:
-          points = 10; // Varsayılan değer
-      }
+    // Soft hyphen karakterlerini temizle
+    const cleanQuestionText = question_text.replace(/­/g, '');
+    const cleanAnswers = answers.map(answer => ({
+      ...answer,
+      answer_text: answer.answer_text.replace(/­/g, '')
+    }));
+
+    let points;
+    switch(difficulty) {
+      case 'kolay':
+        points = 5;
+        break;
+      case 'orta':
+        points = 10;
+        break;
+      case 'zor':
+        points = 20;
+        break;
+      default:
+        points = 10; // Varsayılan değer
+    }
+    
+    // Sorunun varlığını kontrol et
+    const question = await this.findByIdWithAnswers(id);
+    if (!question) {
+      return null;
+    }
+    
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      await connection.execute(
+        `UPDATE questions 
+         SET question_text = ?, user_type = ?, category = ?, difficulty = ?, points = ? 
+         WHERE id = ?`,
+        [cleanQuestionText, user_type, category, difficulty, points, id]
+      );
       
-      // Sorunun varlığını kontrol et
-      const question = await this.findByIdWithAnswers(id);
-      if (!question) {
-        return null;
-      }
+      // Mevcut cevapları sil
+      await connection.execute('DELETE FROM answers WHERE question_id = ?', [id]);
       
-      const connection = await pool.getConnection();
-      await connection.beginTransaction();
-      
-      try {
+      // Yeni cevapları ekle
+      for (const answer of cleanAnswers) {
         await connection.execute(
-          `UPDATE questions 
-           SET question_text = ?, user_type = ?, category = ?, difficulty = ?, points = ? 
-           WHERE id = ?`,
-          [question_text, user_type, category, difficulty, points, id]
+          `INSERT INTO answers 
+           (question_id, answer_text, is_correct) 
+           VALUES (?, ?, ?)`,
+          [id, answer.answer_text, answer.is_correct]
         );
-        
-        // Mevcut cevapları sil
-        await connection.execute('DELETE FROM answers WHERE question_id = ?', [id]);
-        
-        // Yeni cevapları ekle
-        for (const answer of answers) {
-          await connection.execute(
-            `INSERT INTO answers 
-             (question_id, answer_text, is_correct) 
-             VALUES (?, ?, ?)`,
-            [id, answer.answer_text, answer.is_correct]
-          );
-        }
-        
-        await connection.commit();
-        connection.release();
-        
-        // Güncellenmiş soruyu cevaplarıyla birlikte döndür
-        return this.findByIdWithAnswers(id);
-      } catch (error) {
-        await connection.rollback();
-        connection.release();
-        throw error;
       }
+      
+      await connection.commit();
+      connection.release();
+      
+      // Güncellenmiş soruyu cevaplarıyla birlikte döndür
+      return this.findByIdWithAnswers(id);
     } catch (error) {
+      await connection.rollback();
+      connection.release();
       throw error;
     }
+  } catch (error) {
+    throw error;
   }
+}
   
 /**
  * Soruyu sil (tüm ilişkili kayıtlarla birlikte)
