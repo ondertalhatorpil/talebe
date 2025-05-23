@@ -22,8 +22,24 @@ const AdminUsersPage = () => {
       
       // Response yapısını kontrol et
       if (response && response.data) {
+        console.log('🔍 Response structure:', response.data);
+        
         // Backend'den gelen response yapısına göre ayarla
-        let usersData = response.data.users || response.data || [];
+        // Backend'den: { success: true, data: { users: [...], pagination: {...} } }
+        let usersData = [];
+        
+        if (response.data.success && response.data.data && response.data.data.users) {
+          // Nested structure: response.data.data.users
+          usersData = response.data.data.users;
+        } else if (response.data.users) {
+          // Direct structure: response.data.users
+          usersData = response.data.users;
+        } else if (Array.isArray(response.data)) {
+          // Direct array: response.data
+          usersData = response.data;
+        }
+        
+        console.log('📊 Extracted users data:', usersData);
         
         // Eğer array değilse boş array yap
         if (!Array.isArray(usersData)) {
