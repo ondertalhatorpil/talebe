@@ -43,7 +43,7 @@ router.get('/rankings/city/:city', userController.getTopUsersByCity);
 router.get('/rankings/city/:city/district/:district', userController.getTopUsersByDistrict);
 
 // ✅ Dashboard için gerekli endpoint'ler (Admin yetkisi gerekli) - BU SATIRLARI EKLEYİN:
-router.get('/count', authMiddleware, adminMiddleware, userController.getUserCount);
+router.get('/count', authMiddleware, userController.getUserCount);
 router.get('/', authMiddleware, adminMiddleware, userController.getAllUsers);
 
 module.exports = router;

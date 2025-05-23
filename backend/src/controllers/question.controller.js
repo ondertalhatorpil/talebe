@@ -26,7 +26,6 @@ exports.createQuestion = async (req, res) => {
   }
 };
 
-// Soruları listele (filtreli)
 exports.getQuestions = async (req, res) => {
   try {
     const { user_type, category, difficulty } = req.query;
@@ -42,12 +41,21 @@ exports.getQuestions = async (req, res) => {
     if (category) filters.category = category;
     if (difficulty) filters.difficulty = difficulty;
     
+    // Soruları getir
     const questions = await Question.getQuestions(filters, limit, offset);
+    
+    // Toplam soru sayısını ayrı olarak getir
+    const totalCount = await Question.getTotalCount(filters);
     
     res.status(200).json({
       success: true,
-      count: questions.length,
-      questions
+      count: totalCount,  // ← TOPLAM soru sayısı
+      questions,
+      pagination: {
+        limit,
+        offset,
+        returned: questions.length  // Dönen soru sayısı
+      }
     });
   } catch (error) {
     console.error('Controller getQuestions hatası:', error);

@@ -553,6 +553,53 @@ static async getUserAnsweredQuestions(userId, limit = 10, offset = 0) {
       throw error;
     }
   }
+
+  /**
+ * Filtrelere göre toplam soru sayısını getir
+ * @param {Object} filters - Filtre parametreleri
+ * @returns {Promise<number>} - Toplam soru sayısı
+ */
+static async getTotalCount(filters = {}) {
+  try {
+    let query = 'SELECT COUNT(*) as count FROM questions WHERE 1=1';
+    const params = [];
+    
+    // Kullanıcı tipine göre filtrele
+    if (filters.user_type) {
+      query += ' AND (user_type = ? OR user_type = "both")';
+      params.push(filters.user_type);
+    }
+    
+    // Kategoriye göre filtrele
+    if (filters.category) {
+      query += ' AND category = ?';
+      params.push(filters.category);
+    }
+    
+    // Zorluk seviyesine göre filtrele
+    if (filters.difficulty) {
+      query += ' AND difficulty = ?';
+      params.push(filters.difficulty);
+    }
+    
+    // ID listesini hariç tut
+    if (filters.exclude_ids && Array.isArray(filters.exclude_ids) && filters.exclude_ids.length > 0) {
+      query += ` AND id NOT IN (${filters.exclude_ids.map(() => '?').join(',')})`;
+      params.push(...filters.exclude_ids);
+    }
+    
+    console.log('getTotalCount SQL:', query);
+    console.log('getTotalCount Params:', params);
+    
+    const [rows] = await pool.execute(query, params);
+    return rows[0].count;
+  } catch (error) {
+    console.error('getTotalCount error:', error);
+    throw error;
+  }
+}
+
+
 }
 
 module.exports = Question;
