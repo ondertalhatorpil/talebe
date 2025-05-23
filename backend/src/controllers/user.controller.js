@@ -525,8 +525,22 @@ exports.getUserStats = async (req, res) => {
 
 exports.getUserCount = async (req, res) => {
   try {
+    console.log('🔍 getUserCount endpoint çağrıldı');
+    
+    // Database bağlantısını test et
+    const { pool } = require('../config/database');
+    
+    // Direkt SQL sorgusu ile test edelim
+    const [rows] = await pool.execute('SELECT COUNT(*) as total FROM users');
+    const directCount = rows[0].total;
+    console.log('📊 Direkt SQL ile kullanıcı sayısı:', directCount);
+    
+    // Model üzerinden test edelim
     const totalUsers = await User.getTotalUserCount();
+    console.log('📊 Model üzerinden kullanıcı sayısı:', totalUsers);
+    
     const recentUsers = await User.getRecentUsers(5);
+    console.log('📋 Son kullanıcılar:', recentUsers);
     
     // Cache'i devre dışı bırak
     res.set({
@@ -535,19 +549,35 @@ exports.getUserCount = async (req, res) => {
       'Expires': '0'
     });
     
-    res.status(200).json({
+    // Debug için detaylı response
+    const response = {
       success: true,
       data: {
         count: totalUsers,
-        users: recentUsers
+        users: recentUsers,
+        debug: {
+          directSqlCount: directCount,
+          modelCount: totalUsers,
+          recentUsersCount: recentUsers.length,
+          timestamp: new Date().toISOString()
+        }
       }
-    });
+    };
+    
+    console.log('📤 Gönderilen response:', JSON.stringify(response, null, 2));
+    
+    res.status(200).json(response);
   } catch (error) {
-    console.error('getUserCount error:', error);
+    console.error('❌ getUserCount error:', error);
     res.status(500).json({
       success: false,
       message: 'Kullanıcı sayısı alınırken bir hata oluştu.',
-      error: error.message
+      error: error.message,
+      debug: {
+        errorCode: error.code,
+        errorSql: error.sql,
+        timestamp: new Date().toISOString()
+      }
     });
   }
 };
