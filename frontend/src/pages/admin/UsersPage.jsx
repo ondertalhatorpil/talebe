@@ -23,7 +23,14 @@ const AdminUsersPage = () => {
       // Response yapısını kontrol et
       if (response && response.data) {
         // Backend'den gelen response yapısına göre ayarla
-        const usersData = response.data.users || response.data || [];
+        let usersData = response.data.users || response.data || [];
+        
+        // Eğer array değilse boş array yap
+        if (!Array.isArray(usersData)) {
+          console.warn('⚠️ usersData array değil:', typeof usersData, usersData);
+          usersData = [];
+        }
+        
         setUsers(usersData);
         console.log('👥 Kullanıcılar set edildi:', usersData.length, 'kullanıcı');
       } else {
