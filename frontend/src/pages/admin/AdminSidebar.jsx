@@ -41,6 +41,14 @@ const AdminSidebar = () => {
               Sorular
             </Link>
           </li>
+           <li>
+            <Link 
+              to="/admin/users" 
+              className={`block px-4 py-2 rounded ${isActive('/admin/users')}`}
+            >
+              Kullanıcılar
+            </Link>
+          </li>
         </ul>
       </nav>
       
