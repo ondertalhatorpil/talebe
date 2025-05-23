@@ -523,14 +523,17 @@ exports.getUserStats = async (req, res) => {
   }
 };
 
-// Dashboard için kullanıcı sayısı ve son kullanıcılar
 exports.getUserCount = async (req, res) => {
   try {
-    // Toplam kullanıcı sayısını al
     const totalUsers = await User.getTotalUserCount();
-    
-    // Son 5 kullanıcıyı al
     const recentUsers = await User.getRecentUsers(5);
+    
+    // Cache'i devre dışı bırak
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     
     res.status(200).json({
       success: true,
