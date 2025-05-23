@@ -1050,14 +1050,14 @@ static async checkDailyLimit(userId, categoryId) {
   }
 
 
-  /**
+/**
  * Dashboard için toplam kullanıcı sayısını getir
  * @returns {Promise<number>} - Toplam kullanıcı sayısı
  */
 static async getTotalUserCount() {
   try {
     const [rows] = await pool.execute(
-      'SELECT COUNT(*) as count FROM users WHERE is_active = 1'
+      'SELECT COUNT(*) as count FROM users'
     );
     
     return rows[0].count;
@@ -1088,7 +1088,6 @@ static async getRecentUsers(limit = 5) {
         s.district
       FROM users u
       LEFT JOIN schools s ON u.school_id = s.id
-      WHERE u.is_active = 1
       ORDER BY u.register_date DESC
       LIMIT ?
     `, [limit]);
@@ -1121,7 +1120,6 @@ static async getAllUsers(options = {}) {
         u.points,
         u.register_date,
         u.last_login,
-        u.is_active,
         s.name as school_name,
         s.city,
         s.district
