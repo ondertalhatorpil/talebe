@@ -11,7 +11,7 @@ const AdminSidebar = () => {
   return (
     <div className="w-64 bg-indigo-800 text-white min-h-screen flex flex-col">
       <div className="p-4 border-b border-indigo-700">
-        <h2 className="text-xl font-bold">İmam Hatip Quiz</h2>
+        <h2 className="text-xl font-bold">talebe</h2>
         <p className="text-xs text-indigo-300">Admin Panel</p>
       </div>
       
@@ -39,22 +39,6 @@ const AdminSidebar = () => {
               className={`block px-4 py-2 rounded ${isActive('/admin/questions')}`}
             >
               Sorular
-            </Link>
-          </li>
-          <li>
-            <Link 
-              to="/admin/users" 
-              className={`block px-4 py-2 rounded ${isActive('/admin/users')}`}
-            >
-              Kullanıcılar
-            </Link>
-          </li>
-          <li>
-            <Link 
-              to="/admin/schools" 
-              className={`block px-4 py-2 rounded ${isActive('/admin/schools')}`}
-            >
-              Okullar
             </Link>
           </li>
         </ul>
