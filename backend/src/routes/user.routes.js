@@ -3,6 +3,7 @@ const router = express.Router();
 // Tüm controller'ı import et
 const userController = require('../controllers/user.controller');
 const { authMiddleware } = require('../middlewares/auth.middleware');
+const { adminMiddleware } = require('../middlewares/admin.middleware'); // ← BU SATIRINI EKLEYİN
 
 // Kullanıcı profili (kendi profili)
 router.get('/profile', authMiddleware, userController.getProfile);
@@ -40,5 +41,9 @@ router.get('/rankings/city/:city', userController.getTopUsersByCity);
 
 // İlçe bazında en iyi kullanıcılar
 router.get('/rankings/city/:city/district/:district', userController.getTopUsersByDistrict);
+
+// ✅ Dashboard için gerekli endpoint'ler (Admin yetkisi gerekli) - BU SATIRLARI EKLEYİN:
+router.get('/count', authMiddleware, adminMiddleware, userController.getUserCount);
+router.get('/', authMiddleware, adminMiddleware, userController.getAllUsers);
 
 module.exports = router;

@@ -1048,7 +1048,145 @@ static async checkDailyLimit(userId, categoryId) {
       throw error;
     }
   }
+
+
+  /**
+ * Dashboard için toplam kullanıcı sayısını getir
+ * @returns {Promise<number>} - Toplam kullanıcı sayısı
+ */
+static async getTotalUserCount() {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT COUNT(*) as count FROM users WHERE is_active = 1'
+    );
+    
+    return rows[0].count;
+  } catch (error) {
+    console.error('getTotalUserCount error:', error);
+    throw error;
+  }
 }
+
+/**
+ * Dashboard için son kayıt olan kullanıcıları getir
+ * @param {number} limit - Maksimum kullanıcı sayısı
+ * @returns {Promise<Array>} - Son kullanıcılar listesi
+ */
+static async getRecentUsers(limit = 5) {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT 
+        u.id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.user_type,
+        u.points,
+        u.register_date,
+        s.name as school_name,
+        s.city,
+        s.district
+      FROM users u
+      LEFT JOIN schools s ON u.school_id = s.id
+      WHERE u.is_active = 1
+      ORDER BY u.register_date DESC
+      LIMIT ?
+    `, [limit]);
+    
+    return rows;
+  } catch (error) {
+    console.error('getRecentUsers error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Dashboard admin için tüm kullanıcıları getir (sayfalama ile)
+ * @param {Object} options - Seçenekler (page, limit, search)
+ * @returns {Promise<Object>} - Kullanıcılar ve sayfalama bilgisi
+ */
+static async getAllUsers(options = {}) {
+  try {
+    const { page = 1, limit = 10, search = '' } = options;
+    const offset = (page - 1) * limit;
+    
+    // Base query
+    let query = `
+      SELECT 
+        u.id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.user_type,
+        u.points,
+        u.register_date,
+        u.last_login,
+        u.is_active,
+        s.name as school_name,
+        s.city,
+        s.district
+      FROM users u
+      LEFT JOIN schools s ON u.school_id = s.id
+    `;
+    
+    let countQuery = `
+      SELECT COUNT(*) as count
+      FROM users u
+      LEFT JOIN schools s ON u.school_id = s.id
+    `;
+    
+    const params = [];
+    const countParams = [];
+    
+    // Search filter
+    if (search && search.trim()) {
+      const searchCondition = `
+        WHERE (
+          u.first_name LIKE ? OR 
+          u.last_name LIKE ? OR 
+          u.email LIKE ? OR
+          s.name LIKE ?
+        )
+      `;
+      
+      query += searchCondition;
+      countQuery += searchCondition;
+      
+      const searchTerm = `%${search.trim()}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      countParams.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+    
+    // Ordering and pagination
+    query += ` ORDER BY u.register_date DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+    
+    // Execute queries
+    const [users] = await pool.execute(query, params);
+    const [countResult] = await pool.execute(countQuery, countParams);
+    
+    const totalUsers = countResult[0].count;
+    const totalPages = Math.ceil(totalUsers / limit);
+    
+    return {
+      users,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalUsers,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    };
+  } catch (error) {
+    console.error('getAllUsers error:', error);
+    throw error;
+  }
+}
+
+}
+
+
 
 
 module.exports = User;

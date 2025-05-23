@@ -523,6 +523,56 @@ exports.getUserStats = async (req, res) => {
   }
 };
 
+// Dashboard için kullanıcı sayısı ve son kullanıcılar
+exports.getUserCount = async (req, res) => {
+  try {
+    // Toplam kullanıcı sayısını al
+    const totalUsers = await User.getTotalUserCount();
+    
+    // Son 5 kullanıcıyı al
+    const recentUsers = await User.getRecentUsers(5);
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        count: totalUsers,
+        users: recentUsers
+      }
+    });
+  } catch (error) {
+    console.error('getUserCount error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Kullanıcı sayısı alınırken bir hata oluştu.',
+      error: error.message
+    });
+  }
+};
+
+// Dashboard için tüm kullanıcıları listele (Admin)
+exports.getAllUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    
+    const users = await User.getAllUsers({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      search
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: users
+    });
+  } catch (error) {
+    console.error('getAllUsers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Kullanıcılar alınırken bir hata oluştu.',
+      error: error.message
+    });
+  }
+};
 
 
 // User modelinde ekstra fonksiyonlar eklenmeli:
