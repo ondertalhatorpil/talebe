@@ -129,6 +129,7 @@ static async getQuestions(filters = {}, limit = 10, offset = 0) {
     const numericOffset = parseInt(offset, 10);
     
     console.log(`DEBUG: getQuestions - limit: ${numericLimit}, offset: ${numericOffset}`);
+    console.log('DEBUG: Filters:', filters);
     
     let query = 'SELECT * FROM questions WHERE 1=1';
     const params = [];
@@ -139,10 +140,16 @@ static async getQuestions(filters = {}, limit = 10, offset = 0) {
       params.push(filters.user_type);
     }
     
-    // Kategoriye göre filtrele
+    // ✅ DÜZELTME: Kategoriye göre filtrele - hem ID hem name desteği
     if (filters.category) {
-      query += ' AND category = ?';
-      params.push(filters.category);
+      // Eğer sayısal ID ise direkt kullan, string ise kategori adı olarak kabul et
+      if (!isNaN(filters.category)) {
+        query += ' AND category = ?';
+        params.push(parseInt(filters.category));
+      } else {
+        query += ' AND category = ?';
+        params.push(filters.category);
+      }
     }
     
     // Zorluk seviyesine göre filtrele
@@ -157,14 +164,15 @@ static async getQuestions(filters = {}, limit = 10, offset = 0) {
       params.push(...filters.exclude_ids);
     }
     
-    // LIMIT parametresini doğrudan ekleyelim - prepared statement kullanmadan
-    query += ` ORDER BY RAND() LIMIT ${numericLimit} OFFSET ${numericOffset}`;
+    // ✅ DÜZELTME: ORDER BY ve LIMIT - created_at varsa ona göre sırala
+    query += ` ORDER BY id DESC LIMIT ${numericLimit} OFFSET ${numericOffset}`;
     
     console.log('SQL Sorgusu:', query);
     console.log('Parametreler:', params);
     
-    // Sorguyu direkt olarak çalıştır - LIMIT ve OFFSET için hazırlanan parametreler yok
     const [rows] = await pool.query(query, params);
+    console.log(`DEBUG: Dönen soru sayısı: ${rows.length}`);
+    
     return rows;
   } catch (error) {
     console.error('getQuestions error:', error);

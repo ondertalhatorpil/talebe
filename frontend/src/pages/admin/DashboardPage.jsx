@@ -14,73 +14,41 @@ const AdminDashboardPage = () => {
   const [error, setError] = useState(null);
   
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        console.log('🔍 Dashboard verileri getiriliyor...');
-        
-        const [
-          usersResponse,
-          questionsResponse,
-          categoriesResponse
-        ] = await Promise.all([
-          userService.getUserCount(),
-          questionService.getQuestions({ limit: 5 }),
-          categoryService.getCategories()
-        ]);
-        
-        console.log('📊 Users Response:', usersResponse);
-        console.log('📊 Questions Response:', questionsResponse);
-        console.log('📊 Categories Response:', categoriesResponse);
-        
-        // Response yapılarını kontrol et ve doğru şekilde parse et
-        const totalUsers = usersResponse?.data?.count || 
-                          usersResponse?.data?.data?.count || 
-                          0;
-        
-        const totalQuestions = questionsResponse?.data?.count || 
-                              questionsResponse?.data?.data?.count ||
-                              questionsResponse?.data?.questions?.length ||
-                              0;
-        
-        const totalCategories = categoriesResponse?.data?.categories?.length || 
-                               categoriesResponse?.data?.data?.categories?.length ||
-                               categoriesResponse?.data?.length ||
-                               0;
-        
-        const recentUsers = usersResponse?.data?.users || 
-                           usersResponse?.data?.data?.users || 
-                           [];
-        
-        const recentQuestions = questionsResponse?.data?.questions || 
-                               questionsResponse?.data?.data?.questions || 
-                               [];
-        
-        console.log('📈 Parsed stats:', {
-          totalUsers,
-          totalQuestions,
-          totalCategories,
-          recentUsersCount: recentUsers.length,
-          recentQuestionsCount: recentQuestions.length
-        });
-        
-        setStats({
-          totalUsers,
-          totalQuestions,
-          totalCategories,
-          recentUsers,
-          recentQuestions
-        });
-        
-      } catch (err) {
-        console.error('❌ Dashboard verileri yüklenirken hata:', err);
-        setError('Dashboard verileri yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
-      }
-    };
+   const fetchDashboardData = async () => {
+  try {
+    setLoading(true);
+    
+    console.log('🔍 Dashboard verileri getiriliyor...');
+    
+    const [
+      usersResponse,
+      questionsResponse,
+      categoriesResponse
+    ] = await Promise.all([
+      userService.getUserCount(),
+      questionService.getQuestions({ limit: 5 }),
+      categoryService.getCategories()
+    ]);
+    
+    console.log('📊 Users Response:', usersResponse);
+    console.log('📊 Questions Response:', questionsResponse);
+    console.log('📊 Categories Response:', categoriesResponse);
+    
+    // ✅ DÜZELTME: Response parsing
+    setStats({
+      totalUsers: usersResponse?.data?.count || 0,
+      totalQuestions: questionsResponse?.data?.count || questionsResponse?.data?.questions?.length || 0,
+      totalCategories: categoriesResponse?.data?.categories?.length || 0,
+      recentUsers: usersResponse?.data?.users || [],
+      recentQuestions: questionsResponse?.data?.questions || []
+    });
+    
+  } catch (err) {
+    console.error('Dashboard verileri yüklenirken hata:', err);
+  } finally {
+    setLoading(false);
+  }
+};
     
     fetchDashboardData();
   }, []);
