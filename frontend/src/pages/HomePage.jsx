@@ -16,7 +16,6 @@ import {
   FaBookOpen,
   FaBolt,
   FaAward,
-  FaCalendarAlt,
   FaLightbulb
 } from 'react-icons/fa';
 import CategorySlider from './components/CategorySlider';
@@ -435,7 +434,7 @@ if (performanceResult.status === 'fulfilled') {
           <CategorySlider />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
   {/* Kategori Performansı - Modern Quiz Temalı Tasarım */}
   <div className="relative bg-white rounded-2xl shadow-xl border-0 overflow-hidden">
     {/* Animated Background Pattern */}
