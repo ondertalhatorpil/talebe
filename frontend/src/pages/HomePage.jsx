@@ -566,7 +566,7 @@ if (performanceResult.status === 'fulfilled') {
               <FaTrophy className="text-white text-xl animate-pulse" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-gray-900">Liderlik Tablosu</h2>
+              <h2 className="text-lg font-black text-gray-900">Liderlik Tablosu</h2>
               <p className="text-sm text-gray-500">En başarılı öğrenciler</p>
             </div>
           </div>
